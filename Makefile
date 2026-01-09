@@ -66,3 +66,17 @@ test: ## Run tests inside Docker container
 	@echo "Running tests inside Docker container..."
 	docker compose run --rm -w /app/django-app app poetry run pytest --verbose
 	
+#--------------------------------------------------------------------
+
+setup:
+	minikube start
+	minikube addons enable registry
+	minikube addons enable ingress
+	docker build -t cloud -f ./ops/Dockerfile .
+	minikube cache add cloud:latest
+	kubectl apply -f k8s/database/postgres-statefulset.yaml
+	kubectl apply -f k8s/database/postgres-service.yaml
+	kubectl apply -f k8s/database/postgres-secret.yaml
+	kubectl apply -f k8s/backend/
+
+
