@@ -66,3 +66,40 @@ test: ## Run tests inside Docker container
 	@echo "Running tests inside Docker container..."
 	docker compose run --rm -w /app/django-app app poetry run pytest --verbose
 	
+#--------------------------------------------------------------------
+
+setup:
+	@echo "1. Starting Minikube and Addons..."
+	minikube start
+	minikube addons enable ingress
+
+	@echo "2. Applying Secrets..."
+	# Creating the secret with the name and keys the database expects
+	kubectl create secret generic db-secret \
+  		--from-literal=POSTGRES_DB=library_db \
+  		--from-literal=POSTGRES_USER=admin \
+  		--from-literal=postgres-password=yourpassword \
+  		--from-literal=POSTGRES_HOST=postgres-service \
+  		--from-literal=POSTGRES_PORT=5432 \
+  		--dry-run=client -o yaml | kubectl apply -f -
+	
+	# Creating the secret for Django application
+	kubectl create secret generic app-env \
+		--from-literal=SECRET_KEY=your-django-key \
+		--dry-run=client -o yaml | kubectl apply -f -
+
+	@echo "3. Building Image inside Minikube..."
+	# Pointing docker to minikube's internal docker daemon
+	@eval $$(minikube docker-env) && docker build -t cloud:latest -f ./ops/Dockerfile .
+
+	@echo "4. Deploying Database Stack..."
+	kubectl apply -f k8s/database/postgres-service.yaml
+	kubectl apply -f k8s/database/postgres-statefulset.yaml
+	
+	@echo "5. Waiting for Database to be ready..."
+	kubectl wait --for=condition=ready pod -l app=postgres --timeout=60s
+
+	@echo "6. Deploying Backend Application..."
+	kubectl apply -f k8s/backend/deployment.yaml
+	kubectl apply -f k8s/backend/service.yaml
+	kubectl apply -f k8s/backend/django-ingress.yaml
