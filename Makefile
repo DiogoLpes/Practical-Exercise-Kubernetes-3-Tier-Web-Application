@@ -108,3 +108,4 @@ setup:
 deploy:
 	kubectl port-forward service/ingress-nginx-controller 8080:80 -n ingress-nginx
 	
+
