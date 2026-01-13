@@ -5,9 +5,9 @@ metadata:
 spec:
   type: LoadBalancer
   selector:
-    app: django  # Isto liga o serviço aos pods do Deployment acima
+    app: django-app   
   ports:
     - protocol: TCP
-      port: 8000
+      port: 80
       targetPort: 8000
       nodePort: 30002

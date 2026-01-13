@@ -97,9 +97,14 @@ setup:
 	kubectl apply -f k8s/database/postgres-statefulset.yaml
 	
 	@echo "5. Waiting for Database to be ready..."
+	sleep 10
 	kubectl wait --for=condition=ready pod -l app=postgres --timeout=60s
 
 	@echo "6. Deploying Backend Application..."
 	kubectl apply -f k8s/backend/deployment.yaml
 	kubectl apply -f k8s/backend/service.yaml
 	kubectl apply -f k8s/backend/django-ingress.yaml
+
+deploy:
+	kubectl port-forward service/ingress-nginx-controller 8080:80 -n ingress-nginx
+	
